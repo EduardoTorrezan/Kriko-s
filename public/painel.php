@@ -6,7 +6,7 @@ use Kriko\Entity\Administrador;
 require_once dirname(__DIR__) . '/includes/session.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && ($_SESSION['krikos_usuario']['perfil'] ?? '') === 'MASTER') {
-    header('Location: master.php', true, 302);
+    header('Location: ../master.php', true, 302);
     exit;
 }
 
@@ -102,7 +102,7 @@ try {
                 'perfil' => $admin->getPerfil(),
             ];
             if ($admin->getPerfil() === 'MASTER') {
-                header('Location: master.php', true, 303);
+                header('Location: ../master.php', true, 303);
                 exit;
             }
             painelRedirecionar('Acesso liberado.');
