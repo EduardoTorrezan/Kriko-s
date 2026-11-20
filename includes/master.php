@@ -2,15 +2,26 @@
 
 use Kriko\Controller\UserControl;
 
+require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/session.php';
-if (($_SESSION['krikos_usuario']['perfil'] ?? '') !== 'MASTER') {
-    header('Location: public/painel.php', true, 302);
-    exit;
+
+if (!function_exists('e')) {
+    function e(mixed $valor): string
+    {
+        return htmlspecialchars((string) $valor, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    }
 }
 
-function masterEsc(mixed $valor): string
-{
-    return htmlspecialchars((string) $valor, ENT_QUOTES, 'UTF-8');
+if (!function_exists('masterEsc')) {
+    function masterEsc(mixed $valor): string
+    {
+        return e($valor);
+    }
+}
+
+if (($_SESSION['krikos_usuario']['perfil'] ?? '') !== 'MASTER') {
+    header('Location: painel.php', true, 302);
+    exit;
 }
 
 $erro = '';
@@ -23,7 +34,7 @@ try {
             throw new RuntimeException('Atualize a página e tente novamente.');
         }
         $tipo = $_POST['tipo'] ?? '';
-        if (!in_array($tipo, ['categoria', 'produto', 'mesa'], true)) {
+        if (!in_array($tipo, ['categoria', 'produto', 'mesa', 'administrador'], true)) {
             throw new RuntimeException('Operação inválida.');
         }
         $controle = new UserControl($entityManager);
@@ -31,6 +42,19 @@ try {
             $controle->categoria(['nome' => $_POST['nome_categoria'] ?? '', 'descricao' => $_POST['descricao_categoria'] ?? '']);
         } elseif ($tipo === 'mesa') {
             $controle->mesa(['numeroMesa' => $_POST['numero_mesa'] ?? '', 'descricao' => $_POST['descricao_mesa'] ?? '', 'ativo' => $_POST['ativo'] ?? 'S']);
+        } elseif ($tipo === 'administrador') {
+            $senha = is_string($_POST['senha'] ?? null) ? (string) $_POST['senha'] : '';
+            $email = filter_var($_POST['email'] ?? '', FILTER_VALIDATE_EMAIL);
+            if (!$email || strlen($senha) < 8) {
+                throw new InvalidArgumentException('Confira o e-mail e use uma senha com pelo menos 8 caracteres.');
+            }
+            $controle->administrador([
+                'nome' => trim((string) ($_POST['nome'] ?? '')),
+                'email' => $email,
+                'senha' => password_hash($senha, PASSWORD_DEFAULT),
+                'perfil' => (string) ($_POST['perfil'] ?? ''),
+                'ativo' => 'S',
+            ]);
         } else {
             $preco = $_POST['preco'] ?? '';
             if (!is_string($preco) || !preg_match('/\A[0-9]{1,7}(?:\.[0-9]{1,2})?\z/', $preco)) {
